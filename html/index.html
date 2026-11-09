@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BORI & 堅果類豊凶予測シミュレーター | JSEC2026</title>
+  <meta name="description" content="高分解能衛星画像と気象データの統合による堅果類の同調凶作とツキノワグマ出没リスク（BORI）の対話型シミュレーター。ブラウザ上で機械学習モデル（Random Forest）が完全動作します。">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- MathJax for rendering math formulas cleanly -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-area">
+      <h1>
+        <span>BORI & Masting Simulator</span>
+        <span class="logo-tag">JSEC 2026</span>
+      </h1>
+    </div>
+    <div class="header-links">
+      <a href="https://borimap.web.app" target="_blank">🌐 BORImap Webサービス</a>
+      <a href="https://github.com/ssssrabbit/JSEC2026" target="_blank">💻 GitHub Repository</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Preset Bar -->
+  <div class="preset-bar">
+    <span class="preset-title">再現シナリオ・プリセット:</span>
+    <button type="button" class="preset-btn active" data-preset="2025">2025年（3樹種同調大凶作・過去最多出没）</button>
+    <button type="button" class="preset-btn" data-preset="2024">2024年（豊作年・出没抑制）</button>
+    <button type="button" class="preset-btn" data-preset="2023">2023年（ブナ単独大凶作）</button>
+    <button type="button" class="preset-btn" data-preset="baseline">平年基準値</button>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Left Column: Input Features -->
+    <div class="input-column">
+      
+      <!-- Card 1: Beech (ブナ) Model Inputs -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>ブナ結実予測モデルの入力 (Beech Model)</span>
+            <span class="species-tag tag-beech">決定木 100本 / 深さ 5</span>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">前年7月 平均気温 (花芽分化トリガー)</span>
+            <span class="input-val" id="val_prev_temp_m7">28.1 ℃</span>
+          </div>
+          <input type="range" id="prev_temp_m7" min="20.0" max="32.0" step="0.1" value="28.1">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">前年7月 日照時間比率 (%)</span>
+            <span class="input-val" id="val_prev_sun_m7">78 %</span>
+          </div>
+          <input type="range" id="prev_sun_m7" min="40" max="100" step="1" value="78">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">当年7月 平均気温 (°C)</span>
+            <span class="input-val" id="val_temp_m7">28.2 ℃</span>
+          </div>
+          <input type="range" id="temp_m7" min="20.0" max="32.0" step="0.1" value="28.2">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">当年7月 日照時間比率 (%)</span>
+            <span class="input-val" id="val_sun_m7">72 %</span>
+          </div>
+          <input type="range" id="sun_m7" min="40" max="100" step="1" value="72">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">Sentinel-2 当年8月 NDVI アノマリー (林冠実測)</span>
+            <span class="input-val" id="val_ndvi_anom_m8">-0.315</span>
+          </div>
+          <input type="range" id="ndvi_anom_m8" min="-0.500" max="0.300" step="0.005" value="-0.315">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">前年のブナ結実実績</span>
+          </div>
+          <select id="prev_masting_beech">
+            <option value="3.0">3: 豊作 (大結実)</option>
+            <option value="2.0" selected>2: 並作</option>
+            <option value="1.0">1: 凶作</option>
+            <option value="0.0">0: 大凶作 (無結実)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Card 2: Oak (ナラ類) Model Inputs -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>ナラ類結実予測モデルの入力 (Oak Model)</span>
+            <span class="species-tag tag-oak">決定木 50本 / 深さ 3 (過学習防止)</span>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">当年5月 平均気温 (受粉期)</span>
+            <span class="input-val" id="val_temp_m5">17.4 ℃</span>
+          </div>
+          <input type="range" id="temp_m5" min="12.0" max="23.0" step="0.1" value="17.4">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">当年5月 気圧・降水要因</span>
+            <span class="input-val" id="val_precip_m5">1004.3 mm</span>
+          </div>
+          <input type="range" id="precip_m5" min="980.0" max="1020.0" step="0.1" value="1004.3">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">当年5月 日照時間比率 (%)</span>
+            <span class="input-val" id="val_sun_m5">70 %</span>
+          </div>
+          <input type="range" id="sun_m5" min="40" max="100" step="1" value="70">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">当年8月 平均気温 (果実肥大期)</span>
+            <span class="input-val" id="val_temp_m8">27.6 ℃</span>
+          </div>
+          <input type="range" id="temp_m8" min="22.0" max="33.0" step="0.1" value="27.6">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">当年8月 気圧・降水要因</span>
+            <span class="input-val" id="val_precip_m8">1001.7 mm</span>
+          </div>
+          <input type="range" id="precip_m8" min="980.0" max="1020.0" step="0.1" value="1001.7">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">Sentinel-2 当年8月 NDRE アノマリー (Red Edge帯実測)</span>
+            <span class="input-val" id="val_ndre_anom_m8">-0.225</span>
+          </div>
+          <input type="range" id="ndre_anom_m8" min="-0.400" max="0.300" step="0.005" value="-0.225">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">前年のナラ類結実実績</span>
+          </div>
+          <select id="prev_masting_oak">
+            <option value="3.0" selected>3: 豊作 (前年大豊作)</option>
+            <option value="2.0">2: 並作</option>
+            <option value="1.0">1: 凶作</option>
+            <option value="0.0">0: 大凶作</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Card 3: Lag FSI Input -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>前年のエサ不足度 (前年 FSI: クマ個体数の代理変数)</span>
+            <span class="species-tag tag-lag">タイムラグ変数</span>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div class="input-label-wrap">
+            <span class="input-name">前年 FSI_{t-1} (0:豊作で出産増 〜 6:大凶作)</span>
+            <span class="input-val" id="val_prev_fsi">1.0 点</span>
+          </div>
+          <input type="range" id="prev_fsi" min="0.0" max="6.0" step="0.1" value="1.0">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Results & Indicators -->
+    <div class="results-column">
+      
+      <div class="output-card">
+        <div class="risk-header">
+          <span class="risk-badge badge-critical" id="out_risk_badge">特別警戒 (Severe Alert)</span>
+          <div class="bori-score-box">
+            <span class="bori-score-label">ツキノワグマ出没リスク指標 (BORI)</span>
+            <div class="bori-score-number" id="out_bori_val">20.14</div>
+          </div>
+        </div>
+
+        <div class="gauge-track">
+          <div class="gauge-fill" id="gauge_fill" style="width: 85%;"></div>
+        </div>
+
+        <div class="risk-desc-box" id="out_risk_desc">
+          3樹種同調大凶作と前年個体数増が重なり、記録的な大量出没・人里侵入リスクが極めて高い状態です。
+        </div>
+
+        <!-- Secondary Scores -->
+        <div class="scores-grid">
+          <div class="mini-score-card">
+            <span class="mini-score-label">ブナ結実予測 (b̂_t)</span>
+            <span class="mini-score-val" id="out_beech_val" style="color: var(--accent-beech);">0.85</span>
+            <span class="mini-score-sub" id="out_beech_cat">凶作</span>
+          </div>
+
+          <div class="mini-score-card">
+            <span class="mini-score-label">ナラ結実予測 (ô_t)</span>
+            <span class="mini-score-val" id="out_oak_val" style="color: var(--accent-oak);">1.10</span>
+            <span class="mini-score-sub" id="out_oak_cat">凶作</span>
+          </div>
+
+          <div class="mini-score-card" style="grid-column: span 2;">
+            <span class="mini-score-label">エサ不足指標 (FSI_t: 山の飢餓度 / 最大6.0)</span>
+            <span class="mini-score-val" id="out_fsi_val" style="color: var(--accent-fsi);">4.05</span>
+            <span class="mini-score-sub">FSI = (3 - b̂_t) + (3 - ô_t)</span>
+          </div>
+        </div>
+
+        <!-- Calculation Formula Breakdown -->
+        <div class="calc-box">
+          <span class="calc-title">■ 数理モデルの算出ステップ</span>
+          <div>1. エサ不足指標 (FSI):</div>
+          <code class="calc-code" id="calc_fsi_step">FSI_t = (3 - 0.85) + (3 - 1.10) = 4.05</code>
+          <div style="margin-top: 8px;">2. クマ出没リスク指数 (BORI):</div>
+          <code class="calc-code" id="calc_bori_step">BORI_t = 10³ × exp(4.05 - 2.7890 × 1.0) = 20.14</code>
+        </div>
+      </div>
+
+      <!-- Methodology Card -->
+      <div class="card" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+        <h3 style="color: var(--text-main); font-size: 0.95rem; margin-bottom: 8px;">💡 本シミュレーターの仕組み</h3>
+        <p>
+          本Webアプリは、研究論文で構築した学習済みランダムフォレスト決定木群（ブナ100本・ナラ50本）をJSON形式でブラウザ内に内蔵し、<strong>外部API通信なしで完全クライアントサイド実行</strong>しています。
+        </p>
+        <p style="margin-top: 6px;">
+          気象条件およびSentinel-2衛星の林冠反射シグナル（NDVI/NDRE）から堅果類の結実度を推定し、前年ラグを考慮した非線形指数モデル（BORI）によって出没危険度をリアルタイムに評価します。
+        </p>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  高分解能衛星画像と気象データの統合による堅果類の同調凶作と野生動物出没リスクの広域予測（JSEC 2026）<br>
+  文教大学付属高等学校 遠藤 最
+</footer>
+
+<!-- Load pre-exported Random Forest tree weights -->
+<script src="models_data.js"></script>
+<!-- Simulation logic -->
+<script src="simulator.js"></script>
+
+</body>
+</html>
