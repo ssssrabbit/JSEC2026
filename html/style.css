@@ -407,9 +407,36 @@ select:focus {
 
 footer {
   border-top: 1px solid var(--border);
-  padding: 20px;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
   text-align: center;
   font-size: 0.8rem;
   color: var(--text-dim);
   background: var(--panel-bg);
+}
+
+/* Tablet & Mobile PWA Enhancements */
+@supports (padding-top: env(safe-area-inset-top)) {
+  header {
+    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-left: calc(24px + env(safe-area-inset-left));
+    padding-right: calc(24px + env(safe-area-inset-right));
+  }
+}
+
+input[type="range"] {
+  touch-action: manipulation;
+}
+
+button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .output-column {
+    position: static;
+  }
 }
